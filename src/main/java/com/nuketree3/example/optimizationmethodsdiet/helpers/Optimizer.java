@@ -2,10 +2,7 @@ package com.nuketree3.example.optimizationmethodsdiet.helpers;
 
 import com.nuketree3.example.optimizationmethodsdiet.emuns.Gender;
 import com.nuketree3.example.optimizationmethodsdiet.emuns.UserActivityType;
-import com.nuketree3.example.optimizationmethodsdiet.models.NutritionInfo;
-import com.nuketree3.example.optimizationmethodsdiet.models.Product;
-import com.nuketree3.example.optimizationmethodsdiet.models.UserGoals;
-import com.nuketree3.example.optimizationmethodsdiet.models.UserParam;
+import com.nuketree3.example.optimizationmethodsdiet.models.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.stereotype.Component;
@@ -28,7 +25,7 @@ public class Optimizer {
     private static final double MIN_PRODUCT_AMOUNT = 60.0;
     private static double LAMBDA = 0.1;
 
-    public void go(List<Product> products, UserParam userParam) {
+    public DietResult go(List<Product> products, UserParam userParam) {
         System.out.println("скока надо калорий " + calculateCalories(userParam));
         System.out.println("скока надо белков " + calculateProteins(calculateCalories(userParam)));
         System.out.println("скока надо жиров " + calculateFats(calculateCalories(userParam)));
@@ -42,11 +39,8 @@ public class Optimizer {
 
         if (optimalPlan.getProducts().isEmpty()) {
             System.out.println("Не удалось найти решение с текущими параметрами");
-            return;
+            return null;
         }
-
-        String result = formatResult(optimalPlan);
-        System.out.println(result);
 
         if (!isWithinTolerance(optimalPlan.getNutrition(),
                 new UserGoals(
@@ -57,6 +51,8 @@ public class Optimizer {
                         0.1, 0.1, 0.1, 0.1))) {
             System.out.println("Внимание: решение не полностью соответствует целям");
         }
+
+        return formatResult(optimalPlan);
     }
 
     private void changeProductPenalty(double[] penalty, double[] cost, double[] xCurrent, double[] prices) {
@@ -394,31 +390,28 @@ public class Optimizer {
         return learningRate;
     }
 
-    public String formatResult(DietPlan plan) {
-        StringBuilder sb = new StringBuilder();
+    public DietResult formatResult(DietPlan plan) {
+        DietResult result = new DietResult();
 
-        sb.append("Оптимальный план питания:\n");
-        sb.append("--------------------------------\n");
-
+        String[][] strings = new String[plan.getProducts().size()][3];
         for (int i = 0; i < plan.getProducts().size(); i++) {
             Product p = plan.getProducts().get(i);
             double quantity = plan.getQuantities().get(i);
-            sb.append(String.format(
-                    "- %s: %.2f г (%.2f руб)\n",
-                    p.getName(),
-                    quantity,
-                    quantity * p.getPrice() / 100.0
-            ));
+            String[] productParam = new String[3];
+            productParam[0] = p.getName();
+            productParam[1] = String.format("%.2f г", quantity);
+            productParam[2] = String.format("%.2f руб", quantity*p.getCalories()/100);
+            strings[i] = productParam;
         }
+        result.setProductsWithCountAndPrices(strings);
 
-        sb.append("--------------------------------\n");
-        sb.append(String.format("Общая стоимость: %.2f руб\n", plan.getTotalCost()));
-        sb.append(String.format("Калории: %.2f ккал\n", plan.getNutrition().getCalories()));
-        sb.append(String.format("Белки: %.2f г\n", plan.getNutrition().getProteins()));
-        sb.append(String.format("Жиры: %.2f г\n", plan.getNutrition().getFats()));
-        sb.append(String.format("Углеводы: %.2f г\n", plan.getNutrition().getCarbs()));
+        result.setTotalCost(String.format("%.2f руб", plan.getTotalCost()));
+        result.setTotalCalories(String.format("%.2f ккал", plan.getNutrition().getCalories()));
+        result.setTotalProteins(String.format("%.2f г", plan.getNutrition().getProteins()));
+        result.setTotalFats(String.format("%.2f г", plan.getNutrition().getFats()));
+        result.setTotalCarbohydrates(String.format("%.2f г", plan.getNutrition().getCarbs()));
 
-        return sb.toString();
+        return result;
     }
 
 
