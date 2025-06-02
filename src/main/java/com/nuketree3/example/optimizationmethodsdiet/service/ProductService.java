@@ -19,6 +19,7 @@ public class ProductService {
     Optimizer optimizer;
 
 
+
     public DietResult goSimplex(List<Product> productUnchoise, UserParam param) {
         List<Product> products = productRepository.findAll();
         System.out.println(products.size());
@@ -26,6 +27,7 @@ public class ProductService {
             products.removeAll(productUnchoise);
         }
         System.out.println(products.size());
+        //Optimizer.go(products);
         return optimizer.go(products, param);
     }
 
@@ -33,7 +35,7 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-    public DietResult go(UserParam param, List<Product> productUnchoise){
+    public DietResult go(List<Product> productUnchoise, UserParam param){
         return goSimplex(productUnchoise, param);
     }
 }

@@ -26,16 +26,20 @@ public class Optimizer {
     private static double LAMBDA = 0.1;
 
     public DietResult go(List<Product> products, UserParam userParam) {
-        System.out.println("скока надо калорий " + calculateCalories(userParam));
-        System.out.println("скока надо белков " + calculateProteins(calculateCalories(userParam)));
-        System.out.println("скока надо жиров " + calculateFats(calculateCalories(userParam)));
-        System.out.println("скока надо углеводов " + calculateCarbs(calculateCalories(userParam)));
+
+        int day = userParam.getDay();
+        double calories = CalculateCalories.calculateCalories(userParam) * day;
+
+        System.out.println("скока надо калорий " + calories);
+        System.out.println("скока надо белков " + CalculateCalories.calculateProteins(calories));
+        System.out.println("скока надо жиров " + CalculateCalories.calculateFats(calories));
+        System.out.println("скока надо углеводов " + CalculateCalories.calculateCarbs(calories));
 
         if (products == null || products.isEmpty()) {
             throw new IllegalArgumentException("Список продуктов не может быть пустым");
         }
 
-        DietPlan optimalPlan = optimize(products, userParam);
+        DietPlan optimalPlan = optimize(products, userParam, day);
 
         if (optimalPlan.getProducts().isEmpty()) {
             System.out.println("Не удалось найти решение с текущими параметрами");
@@ -44,10 +48,10 @@ public class Optimizer {
 
         if (!isWithinTolerance(optimalPlan.getNutrition(),
                 new UserGoals(
-                        calculateCalories(userParam),
-                        calculateProteins(calculateCalories(userParam)),
-                        calculateFats(calculateCalories(userParam)),
-                        calculateCarbs(calculateCalories(userParam)),
+                        calories,
+                        CalculateCalories.calculateProteins(calories),
+                        CalculateCalories.calculateFats(calories),
+                        CalculateCalories.calculateCarbs(calories),
                         0.1, 0.1, 0.1, 0.1))) {
             System.out.println("Внимание: решение не полностью соответствует целям");
         }
@@ -67,7 +71,7 @@ public class Optimizer {
         for (int i = 0; i < products.size(); i++) {
             sum += xCurrent[i] * products.get(i).getPrice();
         }
-        return sum/100;
+        return sum;
     }
 
     public double computePenalties(NutritionInfo currentNutrition,
@@ -76,19 +80,19 @@ public class Optimizer {
         double calories = currentNutrition.getCalories();
 
         double caloriePenalty =
-                Math.pow(Math.max(0, userGoals.getCaloriesTolerance() - currentNutrition.getCalories()), 2) * 2 +
+                Math.pow(Math.max(0, userGoals.getCaloriesTolerance() - currentNutrition.getCalories()), 2) * LAMBDA_CALORIES +
                         LAMBDA_CALORIES * Math.pow(currentNutrition.getCalories() - userGoals.getTargetCalories(), 2);
 
         double proteinPenalty =
-                Math.pow(Math.max(0, userGoals.getTargetProtein() - currentNutrition.getProteins()), 2) * 2 +
+                Math.pow(Math.max(0, userGoals.getTargetProtein() - currentNutrition.getProteins()), 2) * LAMBDA_CALORIES +
                         LAMBDA_PROTEIN * Math.pow(currentNutrition.getProteins() - userGoals.getTargetProtein(), 2);
 
         double fatPenalty =
-                Math.pow(Math.max(0, userGoals.getFatsTolerance() - currentNutrition.getFats()), 2) * 2 +
+                Math.pow(Math.max(0, userGoals.getFatsTolerance() - currentNutrition.getFats()), 2) * LAMBDA_CALORIES +
                         LAMBDA_FATS * Math.pow(currentNutrition.getFats() - userGoals.getTargetFats(), 2);
 
         double carbsPenalty =
-                Math.pow(Math.max(0, userGoals.getCarbsTolerance() - currentNutrition.getCarbs()), 2) * 2 +
+                Math.pow(Math.max(0, userGoals.getCarbsTolerance() - currentNutrition.getCarbs()), 2) * LAMBDA_CALORIES +
                         LAMBDA_CARBS * Math.pow(currentNutrition.getCarbs() - userGoals.getTargetCarbs(), 2);
 
         double diversityPenalty = computeDiversityPenalty(quantities);
@@ -144,46 +148,7 @@ public class Optimizer {
         return nutrientsTable;
     }
 
-    private static double calculateCalories(UserParam userParam) {
-        if (userParam.getGender().equals(Gender.MALE)) {
-            return ((6.5 * userParam.getUserHeight()) + (10 * userParam.getUserWeight()) - (5 * userParam.getUserAge()) + 5) * coefficientOfPhysicalActivity(userParam.getActivityType());
-        } else {
-            return ((6.5 * userParam.getUserHeight()) + (10 * userParam.getUserWeight()) - (5 * userParam.getUserAge()) - 161) * coefficientOfPhysicalActivity(userParam.getActivityType());
-        }
-    }
 
-    public static double coefficientOfPhysicalActivity(UserActivityType activityType) {
-        switch (activityType) {
-            case VERY_LOW_ACTIVITY -> {
-                return 1.2;
-            }
-            case LOW_ACTIVITY -> {
-                return 1.375;
-            }
-            case MEDIUM_ACTIVITY -> {
-                return 1.550;
-            }
-            case HIGH_ACTIVITY -> {
-                return 1.725;
-            }
-            case VERY_HIGH_ACTIVITY -> {
-                return 1.9;
-            }
-        }
-        return 0;
-    }
-
-    private static double calculateProteins(double calories) {
-        return (calories * 0.15) / 4;
-    }
-
-    private static double calculateFats(double calories) {
-        return (calories * 0.3) / 9;
-    }
-
-    private static double calculateCarbs(double calories) {
-        return (calories * 0.55) / 4;
-    }
 
     private NutritionInfo nutritionInfo(double[] xCurrent, List<Product> products){
         double proteins = 0.0;
@@ -206,7 +171,7 @@ public class Optimizer {
         return new NutritionInfo(proteins, fats, carbs, calories);
     }
 
-    public DietPlan optimize(List<Product> products, UserParam userParam) {
+    public DietPlan optimize(List<Product> products, UserParam userParam, int day) {
         double[] xCurrent = calculateInitialGuess(products.size());
         /*
             private static final double LAMBDA_CALORIES = 0.1;
@@ -215,14 +180,14 @@ public class Optimizer {
     private static final double LAMBDA_CARBS = 0.1;
     private static final double LAMBDA_DIVERSITY = 0.05;
          */
-        double targetCalories = calculateCalories(userParam);
+        double targetCalories = CalculateCalories.calculateCalories(userParam) * day;
 
         UserGoals goals = new UserGoals(
                 targetCalories,
-                calculateProteins(targetCalories),
-                calculateFats(targetCalories),
-                calculateCarbs(targetCalories),
-                0.1,0.1,0.1,0.1); // Начальные допуски ±5%
+                CalculateCalories.calculateProteins(targetCalories),
+                CalculateCalories.calculateFats(targetCalories),
+                CalculateCalories.calculateCarbs(targetCalories),
+                0.1,0.1,0.1,0.1);
         double learningRate = 0.0001;
         int maxIterations = 2000;
         double prevScore = Double.MAX_VALUE;
@@ -246,7 +211,7 @@ public class Optimizer {
             }
 
             prevScore = currentScore;
-            double[] gradient = computeGradient(xCurrent, products, goals);
+                double[] gradient = computeGradient(xCurrent, products, goals);
 
             for (int i = 0; i < xCurrent.length; i++) {
                 xCurrent[i] -= learningRate * gradient[i];

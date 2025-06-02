@@ -30,7 +30,23 @@ public class ProductController {
     @PostMapping("/result")
     public String dietResult(@ModelAttribute UserParam userParam, @RequestParam(value = "UncheckedProducts", required = false) List<Product> uncheckedProducts, Model model) {
         System.out.println(userParam.toString());
-        model.addAttribute("result", productService.go(userParam, uncheckedProducts));
+        model.addAttribute("result", productService.go(uncheckedProducts, userParam));
         return "result";
+    }
+
+    @GetMapping("/self")
+    public String self() {
+        return "selfproductresult";
+    }
+
+    @GetMapping("/")
+    public String startPage(){
+        return "hello";
+    }
+
+    @GetMapping("/all-prouducts")
+    public String allProuducts(Model model) {
+        model.addAttribute("products", productService.getAllProducts());
+        return "allprouducts";
     }
 }

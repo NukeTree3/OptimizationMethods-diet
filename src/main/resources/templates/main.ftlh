@@ -195,6 +195,11 @@
         </div>
 
         <div>
+            <label for="day">На сколько дней:</label>
+            <input type="number" id="day" name="day" min="1" max="120" required>
+        </div>
+
+        <div>
             <label>Исключить продукты (отметьте те, которые хотите исключить):</label>
             <input type="text" id="productSearch" placeholder="Введите название продукта...">
         </div>

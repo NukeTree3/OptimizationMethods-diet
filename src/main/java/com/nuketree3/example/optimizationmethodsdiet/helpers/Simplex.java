@@ -1,17 +1,14 @@
 package com.nuketree3.example.optimizationmethodsdiet.helpers;
 
 import com.nuketree3.example.optimizationmethodsdiet.emuns.Gender;
-import com.nuketree3.example.optimizationmethodsdiet.emuns.Target;
 import com.nuketree3.example.optimizationmethodsdiet.emuns.UserActivityType;
 import com.nuketree3.example.optimizationmethodsdiet.models.Product;
 import com.nuketree3.example.optimizationmethodsdiet.models.UserParam;
-import com.nuketree3.example.optimizationmethodsdiet.repositories.ProductRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class Simplex {
@@ -35,16 +32,16 @@ public class Simplex {
     public void goSimplex(List<Product> products, UserParam userParam) {
 
         double[][] temp = simplex(products, userParam);
-        for (double[] a : temp){
-            for(double d : a){
-                System.out.print(d+" ");
-            }
-            System.out.println();
-        }
-        System.out.println();
+//        for (double[] a : temp){
+//            for(double d : a){
+//                System.out.print(d+" ");
+//            }
+//            System.out.println();
+//        }
+//        System.out.println();
 
-
-        System.out.println("Минимальная стоимость = " + temp[temp.length-1][temp[0].length-1]);
+        extractSolution(temp, products);
+        System.out.println("Минимальная стоимость = " + temp[0][temp[0].length-1]);
         for(int i = 0; i < 5; i ++){
             System.out.println(temp[i][temp[0].length-1]);
         }
@@ -57,9 +54,9 @@ public class Simplex {
         final int zRowIndex = simplex.length - 1; // Индекс строки целевой функции
 
         // Вывод начальной таблицы для отладки
-        System.out.println("Начальная симплекс-таблица:");
-        printSimplexTable(simplex);
-        System.out.println("_______________________________");
+        //System.out.println("Начальная симплекс-таблица:");
+        //printSimplexTable(simplex);
+        //System.out.println("_______________________________");
 
         while (true) {
             double minZ = 0;
@@ -67,7 +64,7 @@ public class Simplex {
 
             // Находим наиболее отрицательный коэффициент в Z-строке
             for (int i = 0; i < simplex[0].length - 1; i++) { // Исключаем RHS
-                if (simplex[zRowIndex][i] > minZ) {
+                if (simplex[zRowIndex][i] < minZ) {
                     minZ = simplex[zRowIndex][i];
                     numberOfColumn = i;
                 }
@@ -132,7 +129,7 @@ public class Simplex {
 
             // Вывод таблицы после каждой итерации для отладки
             System.out.println("Симплекс-таблица после итерации:");
-            printSimplexTable(simplex);
+            //printSimplexTable(simplex);
 
         }
 
@@ -162,6 +159,7 @@ public class Simplex {
 
             if (isBasic) {
                 System.out.printf("x%d = %.2f\n", basicVarIndex + 1, simplex[i][simplex[0].length - 1]);
+                //System.out.println(products.get(basicVarIndex-1) + " " + simplex[i][simplex[0].length - 1]);
             } else {
                 System.out.printf("x%d = 0\n", i+1);
             }
@@ -220,10 +218,10 @@ public class Simplex {
         simplexTable[simplexTable.length - 1][2] = fats * 1.15;
         simplexTable[simplexTable.length - 1][3] = carbohydrates * 1.15;
         simplexTable[simplexTable.length - 1][4] = proteins * 1.15;
-        simplexTable[simplexTable.length - 1][5] = calories;
-        simplexTable[simplexTable.length - 1][6] = fats;
-        simplexTable[simplexTable.length - 1][7] = carbohydrates;
-        simplexTable[simplexTable.length - 1][8] = proteins;
+        simplexTable[simplexTable.length - 1][5] = calories * 0.85;
+        simplexTable[simplexTable.length - 1][6] = fats * 0.85;
+        simplexTable[simplexTable.length - 1][7] = carbohydrates * 0.85;
+        simplexTable[simplexTable.length - 1][8] = proteins * 0.85;
 
         return rotate90Clockwise(simplexTable);
     }
@@ -274,6 +272,44 @@ public class Simplex {
             }
         }
         return 0;
+    }
+
+    public static Map<Integer, Double> extractSolution(double[][] simplexTable, List<Product> products) {
+        Map<Integer, Double> solution = new HashMap<>();
+        int numProducts = products.size();
+        int rhsCol = simplexTable[0].length - 1; // Последний столбец (RHS)
+
+        // Проходим по всем переменным (столбцам, кроме RHS)
+        for (int col = 0; col < rhsCol; col++) {
+            // Проверяем, является ли столбец базисным (имеет одну 1 и остальные 0)
+            int oneRow = -1;
+            boolean isBasic = true;
+
+            for (int row = 0; row < simplexTable.length - 1; row++) { // Исключаем Z-строку
+                double val = simplexTable[row][col];
+
+                if (Math.abs(val - 1.0) < 1e-6) { // Нашли 1
+                    if (oneRow == -1) {
+                        oneRow = row;
+                    } else {
+                        isBasic = false; // Больше одной единицы — не базисный
+                        break;
+                    }
+                } else if (Math.abs(val) > 1e-6) { // Нашли ненулевой элемент
+                    isBasic = false;
+                    break;
+                }
+            }
+
+            // Если столбец базисный, записываем его значение из RHS
+            if (isBasic && oneRow != -1 && col < numProducts) {
+                double amount = simplexTable[oneRow][rhsCol];
+                System.out.println(products.get(col).getName() + " " + amount);
+                solution.put(col, amount); // col = индекс продукта
+            }
+        }
+
+        return solution;
     }
 
 }

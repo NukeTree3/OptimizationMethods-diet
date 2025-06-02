@@ -13,4 +13,5 @@ public class UserParam {
     private Gender gender;
     private UserActivityType activityType;
     private Target target;
+    private int day;
 }
