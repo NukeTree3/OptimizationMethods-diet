@@ -1,11 +1,13 @@
 package com.nuketree3.example.optimizationmethodsdiet.models;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
 @Entity
 @Table(name = "products")
+@AllArgsConstructor
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -13,7 +15,7 @@ public class Product {
     @Column(name = "name")
     private String name;
     @Column(name = "count")
-    private int count;
+    private double count;
     @Column(name = "calories")
     private double calories;
     @Column(name = "proteins")
@@ -25,4 +27,7 @@ public class Product {
     @Column(name = "price")
     private double price;
 
+    public Product() {
+
+    }
 }

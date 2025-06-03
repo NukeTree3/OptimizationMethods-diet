@@ -14,4 +14,5 @@ public class UserParam {
     private UserActivityType activityType;
     private Target target;
     private int day;
+    private int countOfEatings;
 }

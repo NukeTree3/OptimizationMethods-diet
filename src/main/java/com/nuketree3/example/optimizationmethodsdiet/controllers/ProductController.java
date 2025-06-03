@@ -3,6 +3,7 @@ package com.nuketree3.example.optimizationmethodsdiet.controllers;
 import com.nuketree3.example.optimizationmethodsdiet.emuns.Gender;
 import com.nuketree3.example.optimizationmethodsdiet.emuns.Target;
 import com.nuketree3.example.optimizationmethodsdiet.emuns.UserActivityType;
+import com.nuketree3.example.optimizationmethodsdiet.models.DietPlan;
 import com.nuketree3.example.optimizationmethodsdiet.models.Product;
 import com.nuketree3.example.optimizationmethodsdiet.models.UserParam;
 import com.nuketree3.example.optimizationmethodsdiet.service.ProductService;
@@ -30,7 +31,9 @@ public class ProductController {
     @PostMapping("/result")
     public String dietResult(@ModelAttribute UserParam userParam, @RequestParam(value = "UncheckedProducts", required = false) List<Product> uncheckedProducts, Model model) {
         System.out.println(userParam.toString());
-        model.addAttribute("result", productService.go(uncheckedProducts, userParam));
+        DietPlan dietPlan = productService.go(uncheckedProducts, userParam);
+        model.addAttribute("dietPlan", productService.getGroups(dietPlan, userParam.getDay(), userParam.getCountOfEatings()));
+        model.addAttribute("result", productService.getDietResult(dietPlan));
         return "result";
     }
 

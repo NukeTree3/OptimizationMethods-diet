@@ -193,7 +193,10 @@
                 </#list>
             </select>
         </div>
-
+        <div>
+            <label for="countOfEatings">Сколько приемов пищи в день</label>
+            <input type="number" id="countOfEatings" name="countOfEatings" min="1" max="5" required>
+        </div>
         <div>
             <label for="day">На сколько дней:</label>
             <input type="number" id="day" name="day" min="1" max="120" required>
